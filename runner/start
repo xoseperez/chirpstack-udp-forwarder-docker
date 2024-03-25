@@ -1,0 +1,99 @@
+#!/bin/bash
+
+# -----------------------------------------------------------------------------
+# Colors
+# -----------------------------------------------------------------------------
+
+COLOR_INFO="\e[32m" # green
+COLOR_WARNING="\e[33m" # yellow
+COLOR_ERROR="\e[31m" # red
+COLOR_RESET="\e[0m"
+
+# -----------------------------------------------------------------------------
+# Utils
+# -----------------------------------------------------------------------------
+
+replace_placeholder() {
+
+    FILE="$1"
+    NAME="$2"
+    VALUE="$3"
+
+    sed 's|{{'"${NAME}"'}}|'"${VALUE}"'|g' -i "${FILE}"
+
+}
+
+# -----------------------------------------------------------------------------
+# Defaults
+# -----------------------------------------------------------------------------
+
+# Defaults to TTN server v3, `eu1` region, 
+# use a custom SERVER_HOST and SERVER_PORT to change this.
+# If TTI_TENANT is defined different than "ttn", it will be used to build the
+# tenant URL under thethings.industries, otherwise only the region will be used
+# to build the URL under cloud.thethings.network.
+
+TTI_REGION=${TTI_REGION:-"eu1"}
+TTI_TENANT=${TTI_TENANT:-"ttn"}
+if [[ "$TTI_TENANT" == "ttn" ]]; then
+    SERVER_HOST=${SERVER_HOST:-"${TTI_REGION}.cloud.thethings.network"}
+else
+    SERVER_HOST=${SERVER_HOST:-"${TTI_TENANT}.${TTI_REGION}.cloud.thethings.industries"}
+fi
+SERVER_PORT=${SERVER_PORT:-1700}
+
+LOGGING_LEVEL=${LOGGING_LEVEL:-"INFO"}
+KEEPALIVE_INTERVAL=${KEEPALIVE_INTERVAL:-30}
+SOCKET_NAME=${SOCKET_NAME:-"concentratord"}
+
+# -----------------------------------------------------------------------------
+# Check
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# Build configuration
+# -----------------------------------------------------------------------------
+
+CONFIG_FILE=./config.toml
+
+# Copy template
+cp chirpstack-udp-forwarder.toml.template "${CONFIG_FILE}"
+
+# Replace values
+replace_placeholder "${CONFIG_FILE}" "LOGGING_LEVEL" "${LOGGING_LEVEL}"
+replace_placeholder "${CONFIG_FILE}" "SERVER_HOST" "${SERVER_HOST}"
+replace_placeholder "${CONFIG_FILE}" "SERVER_PORT" "${SERVER_PORT}"
+replace_placeholder "${CONFIG_FILE}" "KEEPALIVE_INTERVAL" "${KEEPALIVE_INTERVAL}"
+replace_placeholder "${CONFIG_FILE}" "SOCKET_NAME" "${SOCKET_NAME}"
+
+# -----------------------------------------------------------------------------
+# Info
+# -----------------------------------------------------------------------------
+
+echo ""
+echo -e "${COLOR_INFO}------------------------------------------------------------------"
+echo -e "${COLOR_INFO}$( ./chirpstack-udp-forwarder -V )"
+echo -e "${COLOR_INFO}LoRa(WAN) UDP packet forwarder"
+echo -e "${COLOR_INFO}------------------------------------------------------------------"
+echo -e "${COLOR_INFO}Logging level:        ${LOGGING_LEVEL}"
+echo -e "${COLOR_INFO}UDP server:           ${UDP_SERVER}"
+echo -e "${COLOR_INFO}Keepalive interval:   ${KEEPALIVE_INTERVAL}"
+echo -e "${COLOR_INFO}Socket name:          ${SOCKET_NAME}"
+echo -e "${COLOR_INFO}------------------------------------------------------------------"
+echo -e "${COLOR_INFO}Resources: https://www.chirpstack.io/docs/chirpstack-udp-forwarder"
+echo -e "${COLOR_INFO}           https://github.com/chirpstack/chirpstack-udp-forwarder"
+echo -e "${COLOR_INFO}------------------------------------------------------------------"
+echo -e "${COLOR_RESET}"
+
+# -----------------------------------------------------------------------------
+# Manage sockets
+# -----------------------------------------------------------------------------
+
+sleep 2
+
+while [[ ! -S "/tmp/${SOCKET_NAME}_event" ]]; do sleep 1; done
+
+# -----------------------------------------------------------------------------
+# Start udp-forwarder
+# -----------------------------------------------------------------------------
+./chirpstack-udp-forwarder -c "${CONFIG_FILE}"

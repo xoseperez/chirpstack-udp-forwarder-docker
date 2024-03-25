@@ -1,0 +1,63 @@
+services:
+
+  chirpstack-concentratord:
+    
+    container_name: chirpstack-concentratord
+    image: xoseperez/chirpstack-concentratord
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - /tmp:/tmp
+    environment:
+      MODEL: "RAK7271"
+      INTERFACE: "USB"
+      #RESET_GPIO: 17
+      #POWER_EN_GPIO: 0
+      #HAS_GPS: 0
+      #REGION: "EU868"
+      #CHANNELS: "US915_0"
+      #DEBUG: "INFO"
+      #SOCKER_NAME: "concentratord"
+
+  chirpstack-udp-forwarder:
+    
+    container_name: chirpstack-udp-forwarder
+
+    # use pre-defined image
+    image: xoseperez/chirpstack-udp-forwarder
+
+    # or comment out image: and build it yourself
+    #build:
+    #  context: .
+    #  args:
+    #    ARCH: amd64
+    #    VERSION: 4.1.6
+
+    restart: unless-stopped
+    privileged: true
+
+    depends_on:
+      - chirpstack-concentratord
+
+    volumes:
+      - /tmp:/tmp
+    
+    environment:
+
+      # Set debug level (TRACE, DEBUG, INFO, WARN, ERROR, OFF). Defaults to INFO.
+      LOGGING_LEVEL: "INFO"
+
+      # You can instruct the service to generate the right host and port
+      # to use with a specific TTI tenant and region (for instance TTN eu1 region):
+      #TTI_TENANT: "ttn"
+      #TTI_REGION: "eu1"
+      
+      # Server to connect to
+      #SERVER_HOST=localhost
+      #SERVER_PORT=1700
+
+      # How often to ping the server (in seconds)
+      #KEEPALIVE_INTERVAL: 30
+      
+      # Name of the socket to connect to (must be the same as in the `concentratord` service)
+      #SOCKET_NAME: "concentratord"
