@@ -96,4 +96,4 @@ while [[ ! -S "/tmp/${SOCKET_NAME}_event" ]]; do sleep 1; done
 # -----------------------------------------------------------------------------
 # Start udp-forwarder
 # -----------------------------------------------------------------------------
-./chirpstack-udp-forwarder -c "${CONFIG_FILE}"
+exec ./chirpstack-udp-forwarder -c "${CONFIG_FILE}"
